@@ -6,6 +6,24 @@
 #define UPDATE_DT (1.0f / 60.0f)
 #define MAGNITUDE(vec) sqrtf(vec.x * vec.x + vec.y * vec.y)
 
+Vector2 two_form_solve_elbow_vec(Vector2 shoulder, Vector2 end_effector, float l1, float l2, int elbow_direction_sign) {
+    float x = end_effector.x - shoulder.x;
+    float y = end_effector.y - shoulder.y;
+
+    float numerator = l1 * l1 + x * x + y * y - l2 * l2;
+    float denominator = 2.0f * l1 * sqrtf(x * x + y * y);
+
+    float elbow_angle = acosf(numerator / denominator);
+    if (elbow_angle != elbow_angle) {
+        elbow_angle = 0.0f;
+    }
+
+    float end_effector_angle = atan2f(y, x);
+    float final_angle = end_effector_angle + elbow_angle * elbow_direction_sign;
+
+    return (Vector2){ cosf(final_angle) * l1, sinf(final_angle) * l1 };
+}
+
 int main(void) {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Bird Demo");
     SetTargetFPS(60);
@@ -39,7 +57,11 @@ int main(void) {
         Vector2 foot_pos_constrained = { player_pos.x + foot_vec_constrained.x, player_pos.y + foot_vec_constrained.y };
 
         DrawCircleV(player_pos, radius, WHITE);
-        DrawLineEx(player_pos, foot_pos_constrained, leg_thickness, WHITE);
+
+        Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, 1);
+        Vector2 elbow_pos = { player_pos.x + elbow_vec.x, player_pos.y + elbow_vec.y };
+        DrawLineEx(player_pos, elbow_pos, leg_thickness, WHITE);
+        DrawLineEx(elbow_pos, foot_pos_constrained, leg_thickness, WHITE);
         DrawCircleLinesV(foot_target, target_radius, YELLOW);
 
         EndDrawing();
