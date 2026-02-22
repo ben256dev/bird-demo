@@ -17,6 +17,7 @@ int main(void) {
     float player_height = 140.0f;
     float floor_height = 60.0f;
     float leg_thickness = 8.0f;
+    float leg_length = 160.0f;
 
     Vector2 player_pos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT - player_height - floor_height };
     Vector2 foot_target = { player_pos.x, player_pos.y + player_height };
@@ -31,9 +32,9 @@ int main(void) {
 
         Vector2 foot_vec_constrained = { foot_target.x - player_pos.x, foot_target.y - player_pos.y };
         float unconstrained_distance = MAGNITUDE(foot_vec_constrained);
-        if (unconstrained_distance > player_height) {
-            foot_vec_constrained.x *= player_height / unconstrained_distance;
-            foot_vec_constrained.y *= player_height / unconstrained_distance;
+        if (unconstrained_distance > leg_length) {
+            foot_vec_constrained.x *= leg_length / unconstrained_distance;
+            foot_vec_constrained.y *= leg_length / unconstrained_distance;
         }
         Vector2 foot_pos_constrained = { player_pos.x + foot_vec_constrained.x, player_pos.y + foot_vec_constrained.y };
 
