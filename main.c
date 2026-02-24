@@ -16,6 +16,13 @@ float fsign(float x) {
     }
 }
 
+float lerpf(float a, float b, float p) {
+    return a + (b - a) * p;
+}
+
+Vector2 lerpv2(Vector2 a, Vector2 b, float p) {
+    return (Vector2){ lerpf(a.x, b.x, p), lerpf(a.y, b.y, p) };
+}
 
 Vector2 two_form_solve_elbow_vec(Vector2 shoulder, Vector2 end_effector, float l1, float l2, int elbow_direction_sign) {
     float x = end_effector.x - shoulder.x;
@@ -50,11 +57,15 @@ int main(void) {
     float leg_length = 160.0f;
 
     float stride_length = 150.0f;
+    float step_speed = 5.0f;
 
     Vector2 player_pos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT - player_height - floor_height };
     Vector2 feet[2] = { { player_pos.x + 40, player_pos.y + player_height }, { player_pos.x, player_pos.y + player_height } };
     Vector2 step_target = { player_pos.x + velocity / player_speed * stride_length / 2.0f, player_pos.y + player_height };
 
+    int feet_should_step[2] = { 0 };
+    float feet_step_phase[2] = { 0.0f };
+    Vector2 feet_step_start[2] = { 0 };
     while (!WindowShouldClose()) {
         int left_right = (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) - (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT));
 
@@ -70,15 +81,26 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        int foot_was_constrained[2] = { 0 };
         for (int i = 0; i < 2; i++) {
+            if (feet_should_step[i]) {
+                feet_step_phase[i] += step_speed * UPDATE_DT;
+                if (feet_step_phase[i] > 1.0f) {
+                    feet_step_phase[i] = 0.0f;
+                    feet_should_step[i] = 0;
+                    feet[i] = step_target;
+                } else {
+                    feet[i] = lerpv2(feet_step_start[i], step_target, feet_step_phase[i]);
+                }
+            }
+
             Vector2 foot_vec_constrained = { feet[i].x - player_pos.x, feet[i].y - player_pos.y };
             float unconstrained_distance = MAGNITUDE(foot_vec_constrained);
             if (unconstrained_distance > leg_length) {
                 foot_vec_constrained.x *= leg_length / unconstrained_distance;
                 foot_vec_constrained.y *= leg_length / unconstrained_distance;
-                foot_was_constrained[i] = 1;
-
+                feet_should_step[i] = 1;
+                feet_step_start[i] = feet[i];
+                feet_step_start[i].y = player_pos.y + player_height;
             }
             Vector2 foot_pos_constrained = { player_pos.x + foot_vec_constrained.x, player_pos.y + foot_vec_constrained.y };
 
@@ -87,7 +109,7 @@ int main(void) {
             Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, 1);
             Vector2 elbow_pos = { player_pos.x + elbow_vec.x, player_pos.y + elbow_vec.y };
 
-            Color foot_color = foot_was_constrained[i] ? YELLOW : WHITE;
+            Color foot_color = feet_should_step[i] ? YELLOW : WHITE;
             DrawLineEx(player_pos, elbow_pos, leg_thickness, WHITE);
             DrawLineEx(elbow_pos, foot_pos_constrained, leg_thickness, WHITE);
             DrawCircleLinesV(feet[i], target_radius, foot_color);
