@@ -38,7 +38,7 @@ int main(void) {
     float leg_length = 160.0f;
 
     Vector2 player_pos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT - player_height - floor_height };
-    Vector2 foot_target = { player_pos.x, player_pos.y + player_height };
+    Vector2 feet[2] = { { player_pos.x + 40, player_pos.y + player_height }, { player_pos.x, player_pos.y + player_height } };
 
     while (!WindowShouldClose()) {
         int left_right = (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) - (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT));
@@ -48,21 +48,23 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        Vector2 foot_vec_constrained = { foot_target.x - player_pos.x, foot_target.y - player_pos.y };
-        float unconstrained_distance = MAGNITUDE(foot_vec_constrained);
-        if (unconstrained_distance > leg_length) {
-            foot_vec_constrained.x *= leg_length / unconstrained_distance;
-            foot_vec_constrained.y *= leg_length / unconstrained_distance;
+        for (int i = 0; i < 2; i++) {
+            Vector2 foot_vec_constrained = { feet[i].x - player_pos.x, feet[i].y - player_pos.y };
+            float unconstrained_distance = MAGNITUDE(foot_vec_constrained);
+            if (unconstrained_distance > leg_length) {
+                foot_vec_constrained.x *= leg_length / unconstrained_distance;
+                foot_vec_constrained.y *= leg_length / unconstrained_distance;
+            }
+            Vector2 foot_pos_constrained = { player_pos.x + foot_vec_constrained.x, player_pos.y + foot_vec_constrained.y };
+
+            DrawCircleV(player_pos, radius, WHITE);
+
+            Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, 1);
+            Vector2 elbow_pos = { player_pos.x + elbow_vec.x, player_pos.y + elbow_vec.y };
+            DrawLineEx(player_pos, elbow_pos, leg_thickness, WHITE);
+            DrawLineEx(elbow_pos, foot_pos_constrained, leg_thickness, WHITE);
+            DrawCircleLinesV(feet[i], target_radius, YELLOW);
         }
-        Vector2 foot_pos_constrained = { player_pos.x + foot_vec_constrained.x, player_pos.y + foot_vec_constrained.y };
-
-        DrawCircleV(player_pos, radius, WHITE);
-
-        Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, 1);
-        Vector2 elbow_pos = { player_pos.x + elbow_vec.x, player_pos.y + elbow_vec.y };
-        DrawLineEx(player_pos, elbow_pos, leg_thickness, WHITE);
-        DrawLineEx(elbow_pos, foot_pos_constrained, leg_thickness, WHITE);
-        DrawCircleLinesV(foot_target, target_radius, YELLOW);
 
         EndDrawing();
     }
