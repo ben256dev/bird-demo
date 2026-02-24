@@ -70,12 +70,15 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
 
+        int foot_was_constrained[2] = { 0 };
         for (int i = 0; i < 2; i++) {
             Vector2 foot_vec_constrained = { feet[i].x - player_pos.x, feet[i].y - player_pos.y };
             float unconstrained_distance = MAGNITUDE(foot_vec_constrained);
             if (unconstrained_distance > leg_length) {
                 foot_vec_constrained.x *= leg_length / unconstrained_distance;
                 foot_vec_constrained.y *= leg_length / unconstrained_distance;
+                foot_was_constrained[i] = 1;
+
             }
             Vector2 foot_pos_constrained = { player_pos.x + foot_vec_constrained.x, player_pos.y + foot_vec_constrained.y };
 
@@ -83,9 +86,11 @@ int main(void) {
 
             Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, 1);
             Vector2 elbow_pos = { player_pos.x + elbow_vec.x, player_pos.y + elbow_vec.y };
+
+            Color foot_color = foot_was_constrained[i] ? YELLOW : WHITE;
             DrawLineEx(player_pos, elbow_pos, leg_thickness, WHITE);
             DrawLineEx(elbow_pos, foot_pos_constrained, leg_thickness, WHITE);
-            DrawCircleLinesV(feet[i], target_radius, WHITE);
+            DrawCircleLinesV(feet[i], target_radius, foot_color);
         }
 
         DrawCircleV(step_target, target_radius, YELLOW);
