@@ -57,14 +57,15 @@ int main(void) {
     float leg_length = 160.0f;
 
     float stride_length = 150.0f;
-    float step_speed = 5.0f;
+    float step_stance_start[2] = { 0.0f, 0.5f };
+    float step_stance_end[2] = { 0.55f, 0.05f };
+    float gait_phase = 0.0f;
 
     Vector2 player_pos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT - player_height - floor_height };
     Vector2 feet[2] = { { player_pos.x + 40, player_pos.y + player_height }, { player_pos.x, player_pos.y + player_height } };
     Vector2 step_target = { player_pos.x + velocity / player_speed * stride_length / 2.0f, player_pos.y + player_height };
 
-    int feet_should_step[2] = { 0 };
-    float feet_step_phase[2] = { 0.0f };
+    int feet_step_triggered[2] = { 0 };
     Vector2 feet_step_start[2] = { 0 };
     while (!WindowShouldClose()) {
         int left_right = (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) - (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT));
@@ -81,16 +82,48 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
 
+        gait_phase += UPDATE_DT;
+        gait_phase = fmodf(gait_phase, 1.0f);
+        if (gait_phase < 0.0f) {
+            gait_phase += 1.0f;
+        }
+
         for (int i = 0; i < 2; i++) {
-            if (feet_should_step[i]) {
-                feet_step_phase[i] += step_speed * UPDATE_DT;
-                if (feet_step_phase[i] > 1.0f) {
-                    feet_step_phase[i] = 0.0f;
-                    feet_should_step[i] = 0;
-                    feet[i] = step_target;
-                } else {
-                    feet[i] = lerpv2(feet_step_start[i], step_target, feet_step_phase[i]);
-                }
+            float phase = fmodf(gait_phase, 1.0f);
+            if (phase < 0.0f) phase += 1.0f;
+
+            int foot_in_swing;
+            if (step_stance_start[i] <= step_stance_end[i]) {
+                foot_in_swing = !(phase >= step_stance_start[i] && phase < step_stance_end[i]);
+            } else {
+                foot_in_swing = !((phase >= step_stance_start[i]) || (phase < step_stance_end[i]));
+            }
+
+            if (feet_step_triggered[i] == 0 && foot_in_swing) {
+                feet_step_triggered[i] = 1;
+                feet_step_start[i] = feet[i];
+                feet_step_start[i].y = player_pos.y + player_height;
+            } else if (feet_step_triggered[i] == 1 && !foot_in_swing) {
+                feet_step_triggered[i] = 0;
+            }
+
+            if (feet_step_triggered[i]) {
+                float swing_start = step_stance_end[i];
+                float swing_end   = step_stance_start[i];
+
+                float swing_len = swing_end - swing_start;
+                if (swing_len < 0.0f) swing_len += 1.0f;
+
+                float swing_t = phase - swing_start;
+                if (swing_t < 0.0f) swing_t += 1.0f;
+
+                float step_progress = swing_t / swing_len;
+                if (step_progress < 0.0f) step_progress = 0.0f;
+                if (step_progress > 1.0f) step_progress = 1.0f;
+
+                Vector2 foot_target = lerpv2(feet_step_start[i], step_target, step_progress);
+
+                feet[i] = foot_target;
             }
 
             Vector2 foot_vec_constrained = { feet[i].x - player_pos.x, feet[i].y - player_pos.y };
@@ -98,9 +131,6 @@ int main(void) {
             if (unconstrained_distance > leg_length) {
                 foot_vec_constrained.x *= leg_length / unconstrained_distance;
                 foot_vec_constrained.y *= leg_length / unconstrained_distance;
-                feet_should_step[i] = 1;
-                feet_step_start[i] = feet[i];
-                feet_step_start[i].y = player_pos.y + player_height;
             }
             Vector2 foot_pos_constrained = { player_pos.x + foot_vec_constrained.x, player_pos.y + foot_vec_constrained.y };
 
@@ -109,7 +139,7 @@ int main(void) {
             Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, 1);
             Vector2 elbow_pos = { player_pos.x + elbow_vec.x, player_pos.y + elbow_vec.y };
 
-            Color foot_color = feet_should_step[i] ? YELLOW : WHITE;
+            Color foot_color = feet_step_triggered[i] ? YELLOW : WHITE;
             DrawLineEx(player_pos, elbow_pos, leg_thickness, WHITE);
             DrawLineEx(elbow_pos, foot_pos_constrained, leg_thickness, WHITE);
             DrawCircleLinesV(feet[i], target_radius, foot_color);
