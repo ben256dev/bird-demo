@@ -82,8 +82,8 @@ int main(void) {
         BeginDrawing();
         ClearBackground(BLACK);
 
-        gait_phase += UPDATE_DT;
-        gait_phase = fmodf(gait_phase, 1.0f);
+        float phase_step = (fabsf(velocity) * UPDATE_DT) / stride_length;
+        gait_phase = fmodf(gait_phase + phase_step, 1.0f);
         if (gait_phase < 0.0f) {
             gait_phase += 1.0f;
         }
