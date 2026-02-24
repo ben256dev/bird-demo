@@ -136,7 +136,7 @@ int main(void) {
 
             DrawCircleV(player_pos, radius, WHITE);
 
-            Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, 1);
+            Vector2 elbow_vec = two_form_solve_elbow_vec(player_pos, foot_pos_constrained, leg_length / 2, leg_length / 2, fsign(velocity));
             Vector2 elbow_pos = { player_pos.x + elbow_vec.x, player_pos.y + elbow_vec.y };
 
             Color foot_color = feet_step_triggered[i] ? YELLOW : WHITE;
